@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify, current_app
-from app.utils.network_utils import get_local_ip, listen_for_acknowledgment, send_acknowledgment, broadcast_receiver, listen_for_receiver, listen_for_handshake,send_handshake, BroadcastState
+from app.utils.network_utils import get_local_ip, listen_for_acknowledgment, send_acknowledgment, broadcast_receiver, listen_for_receiver, listen_for_handshake, send_handshake, BroadcastState
 import threading
 from app.extensions import app_state
+from app.services.key_service import load_rsa_public_key, load_signature_public_key
 
 handshake_bp = Blueprint("handshake", __name__)
 
@@ -11,7 +12,7 @@ def discover_receiver():
     if app_state.role != "SENDER":
         return jsonify({"error": "Not in sender mode"}), 403
 
-    ip, port,name  = listen_for_receiver()
+    ip, port, name = listen_for_receiver()
 
     if not ip:
         return jsonify({"error": "No receiver found"}), 404
@@ -80,6 +81,12 @@ def receiver_status():
     state = app_state.broadcast_state
 
     if state.handshake_received:
+        # 🔑 Store sender's public keys from handshake
+        if 'rsa_public_key' in state.sender_info:
+            app_state.peer_rsa_public_key = bytes.fromhex(state.sender_info['rsa_public_key'])
+        if 'signature_public_key' in state.sender_info:
+            app_state.peer_signature_public_key = bytes.fromhex(state.sender_info['signature_public_key'])
+        
         return jsonify({
             "status": "READY",
             "sender_ip": state.sender_info["ip"],
@@ -88,7 +95,6 @@ def receiver_status():
         })
     else:
         return jsonify({"status": "WAITING"})
-
 
     
 @handshake_bp.route("/receiver/acknowledge", methods=["POST"])
@@ -107,8 +113,18 @@ def receiver_acknowledge():
     receiver_ip = get_local_ip()
     receiver_port = 5050
 
-    # Send acknowledgment to sender
-    success = send_acknowledgment(sender_ip, sender_port, receiver_ip, receiver_port, receiver_name)
+    # 🔑 Load receiver's public keys
+    receiver_rsa_public_key = load_rsa_public_key()
+    receiver_signature_public_key = load_signature_public_key()
+
+    # Send acknowledgment to sender with public keys
+    success = send_acknowledgment(
+        sender_ip, 
+        sender_port, 
+        receiver_ip, 
+        receiver_port, 
+        receiver_name,
+    )
 
     if success:
         return jsonify({
@@ -135,8 +151,18 @@ def sender_handshake():
     sender_ip = get_local_ip()
     sender_port = 5051
 
-    # Send handshake
-    success = send_handshake(receiver_ip, receiver_port, sender_ip, sender_port, sender_name)
+    # 🔑 Load sender's public keys
+    sender_rsa_public_key = load_rsa_public_key()
+    sender_signature_public_key = load_signature_public_key()
+
+    # Send handshake with public keys
+    success = send_handshake(
+        receiver_ip, 
+        receiver_port, 
+        sender_ip, 
+        sender_port, 
+        sender_name
+    )
 
     if success:
         # Start listening for acknowledgment
@@ -172,6 +198,13 @@ def sender_ack_status():
     state = app_state.ack_state
 
     if state.ack_received:
+        # 🔑 Store receiver's public keys from acknowledgment
+        if hasattr(state, 'receiver_info'):
+            if 'rsa_public_key' in state.receiver_info:
+                app_state.peer_rsa_public_key = bytes.fromhex(state.receiver_info['rsa_public_key'])
+            if 'signature_public_key' in state.receiver_info:
+                app_state.peer_signature_public_key = bytes.fromhex(state.receiver_info['signature_public_key'])
+        
         return jsonify({"status": "ACKNOWLEDGED"})
     else:
         return jsonify({"status": "WAITING"})

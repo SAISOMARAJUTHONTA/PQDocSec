@@ -2,6 +2,8 @@ import socket
 import json
 import time
 import threading
+from app.services.key_service import load_signature_public_key, load_rsa_public_key
+from cryptography.hazmat.primitives import serialization
 
 DISCOVERY_PORT = 9999
 BROADCAST_ADDR = "255.255.255.255"
@@ -84,13 +86,18 @@ def listen_for_handshake(port, state, timeout=60):
 def send_handshake(receiver_ip, receiver_port, sender_ip, sender_port, sender_name):
     """Sender sends handshake to receiver"""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    
+    sign_public_key = load_signature_public_key()
     payload = {
         "type": "SENDER_HANDSHAKE",
         "name": sender_name,
         "ip": sender_ip,
-        "port": sender_port
+        "port": sender_port,
+        "public_key": sign_public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        ).decode('utf-8')
     }
+    print("Sending handshake payload:", payload)
 
     try:
         sock.sendto(
@@ -127,12 +134,16 @@ def listen_for_receiver(timeout=10):
 def send_acknowledgment(sender_ip, sender_port, receiver_ip, receiver_port, receiver_name):
     """Receiver sends acknowledgment back to sender"""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    
+    rsa_public_key = load_rsa_public_key()
     payload = {
         "type": "RECEIVER_ACK",
         "name": receiver_name,
         "ip": receiver_ip,
-        "port": receiver_port
+        "port": receiver_port,
+        "signature_public_key": rsa_public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        ).decode('utf-8')
     }
 
     try:
