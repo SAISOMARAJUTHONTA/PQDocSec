@@ -46,8 +46,9 @@ def pqc_encrypt_file_workflow(input_path: str):
     shared_secret, kyber_ct = sender_generate_shared_secret_and_ciphertext()
     print("Shared secret and Kyber ciphertext generated")
     # 2️⃣ Derive AES key from shared secret
+    print(f"Derived shared secret: {shared_secret.hex()}")  # Debug print of shared secret
     aes_key = derive_aes_key_from_shared_secret(shared_secret)
-    
+    print(f"Derived AES key: {aes_key.hex()}")  # Debug print of AES key
     # 3️⃣ AES encrypt file
     encrypted_path = encrypt_file_with_aes_key(
         input_path,
@@ -100,10 +101,10 @@ def pqc_decrypt_file_workflow(
 
     # 3️⃣ Kyber decapsulation (derive shared secret)
     shared_secret = receiver_derive_shared_secret_from_ciphertext()
-
+    print(f"Derived shared secret: {shared_secret.hex()}")  # Debug print of shared secret
     # 4️⃣ Derive AES key from shared secret
     aes_key = derive_aes_key_from_shared_secret(shared_secret)
-
+    print(f"Derived AES key: {aes_key.hex()}")  # Debug print of AES key
     # 5️⃣ AES decrypt file
     decrypted_path = decrypt_file_with_aes_key(
         encrypted_file_path,

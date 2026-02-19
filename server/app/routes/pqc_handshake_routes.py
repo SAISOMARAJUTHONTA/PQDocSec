@@ -3,6 +3,10 @@ import base64
 from flask import Blueprint, request, jsonify
 
 from app.extensions import app_state
+from app.services.pqc_key_service import (
+    store_receiver_kyber_public_key,
+    store_sender_dilithium_public_key
+)
 from app.utils.network_utils import (
     get_local_ip,
     listen_for_receiver,
@@ -114,8 +118,9 @@ def receiver_status():
     sender_info = state.sender_info
 
     # Store sender Dilithium public key
-    app_state.peer_dilithium_public_key = base64.b64decode(
-        sender_info["dilithium_public_key"]
+    app_state.peer_dilithium_public_key = bytes.fromhex(sender_info["dilithium_public_key"])
+    store_sender_dilithium_public_key(
+        bytes.fromhex(sender_info["dilithium_public_key"])
     )
 
     return jsonify({
@@ -154,8 +159,10 @@ def receiver_acknowledge():
         "name": receiver_name,
         "ip": receiver_ip,
         "port": receiver_port,
-        "kyber_public_key": base64.b64encode(kyber_pk).decode("utf-8")
+        "kyber_public_key": kyber_pk.hex()
     }
+
+
 
     success = send_acknowledgment(sender_ip, sender_port, receiver_ip, receiver_port, receiver_name)
 
@@ -197,7 +204,7 @@ def sender_handshake():
         "name": sender_name,
         "ip": sender_ip,
         "port": sender_port,
-        "dilithium_public_key": base64.b64encode(dilithium_pk).decode("utf-8")
+        "dilithium_public_key": dilithium_pk.hex()
     }
     print("Prepared handshake payload:", payload)
     success = send_handshake(receiver_ip, receiver_port, sender_ip, sender_port, sender_name)
@@ -242,8 +249,7 @@ def sender_ack_status():
     receiver_info = state.receiver_info
 
     # Store receiver Kyber public key
-    app_state.peer_kyber_public_key = base64.b64decode(
-        receiver_info["kyber_public_key"]
-    )
+    store_receiver_kyber_public_key(bytes.fromhex(receiver_info["kyber_public_key"]))
+    app_state.peer_kyber_public_key = bytes.fromhex(receiver_info["kyber_public_key"])
 
     return jsonify({"status": "ACKNOWLEDGED"})

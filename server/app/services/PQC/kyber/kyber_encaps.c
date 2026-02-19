@@ -20,7 +20,7 @@ int main(void) {
     /* 2️⃣ Load receiver public key */
     uint8_t pk[OQS_KEM_kyber_512_length_public_key];
 
-    FILE *fpk = fopen("pqc_keys/kyber_pk.bin", "rb");
+    FILE *fpk = fopen("pqc_keys/receiver_kyber_pk.bin", "rb");
     
     if (!fpk) {
         fprintf(stderr, "ERROR: Could not open Kyber public key\n");

@@ -13,7 +13,7 @@ int main(void) {
     /* 2️⃣ Load public key */
     uint8_t pk[sig->length_public_key];
 
-    FILE *fpk = fopen("pqc_keys/dilithium_pk.bin", "rb");
+    FILE *fpk = fopen("pqc_keys/sender_dilithium_pk.bin", "rb");
     if (!fpk) {
         fprintf(stderr, "ERROR: Could not open public key file\n");
         OQS_SIG_free(sig);

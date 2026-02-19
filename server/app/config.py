@@ -7,4 +7,4 @@ class Config:
     DECRYPTED_FOLDER = os.path.join(BASE_DIR,"..","decrypted_files")
     PQC_KEY_FOLDER = os.path.join(BASE_DIR, "..", "pqc_keys")
 
-    MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 20 MB
+    MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 20 MBq

@@ -188,9 +188,10 @@ def pqc_decrypt_file():
     if not signature_b64 or not kyber_ct_b64:
         print("Missing signature or Kyber ciphertext in form data")
         return jsonify({"error": "Missing signature or Kyber ciphertext"}), 400
-
+    print(f"kyber_ct_b64: {kyber_ct_b64[:100]}...")  # Print first 100 chars for debugging
     # Decode Base64 inputs
-    kyber_ct = bytes.fromhex(kyber_ct_b64)  # Kyber ciphertext is hex-encoded
+    kyber_ct = bytes.fromhex(kyber_ct_b64)  
+    print(f"Kyber ciphertext length: {len(kyber_ct)} bytes")
     try:
         signature = base64.b64decode(signature_b64)
         
